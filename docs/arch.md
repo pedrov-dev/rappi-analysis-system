@@ -2,7 +2,7 @@
 
 ## High-Level Architecture
 
-```
+```markdown
 CSV Data
    ↓
 Data Loader (Pandas)
@@ -28,16 +28,17 @@ Python
 Pandas
 Optional: DuckDB (recommended but optional)
 
-```
+```python
 data/
-  orders.csv
-  stores.csv
-  couriers.csv
+  METRICS.csv
+  ORDERS.csv
+  SUMMARY.csv
 
 import pandas as pd
 
-orders = pd.read_csv("orders.csv")
-stores = pd.read_csv("stores.csv")
+metrics = pd.read_csv("METRICS.csv")
+orders = pd.read_csv("ORDERS.csv")
+summary = pd.read_csv("SUMMARY.csv")
 ```
 
 ### 2. Query Engine (The Core)
@@ -56,7 +57,7 @@ Use:
 OpenAI / GPT-5
 Pandas agent (LangChain / LlamaIndex / custom)
 
-```
+```markdown
 # Flow:
 
 User question
@@ -75,12 +76,11 @@ LLM generates:
 df.groupby("store").cancel_rate.mean().sort_values()
 ```
 
-
 ### 3. Insight Generator (Very Impressive, Easy to Add)
 
 After every query:
 
-```
+```markdown
 Data result
    ↓
 LLM
@@ -91,6 +91,7 @@ LLM
 Example output:
 
 Top insights:
+
 - Store X has 35% higher delays
 - Area Y has courier shortage
 - Peak delays at 8pm
@@ -104,13 +105,16 @@ Use:
 FastAPI (Recommended)
 
 Endpoints:
-```
+
+```markdown
 POST /chat
 POST /insights
 GET /health
 ```
+
 Example:
-```
+
+```markdown
 User → frontend → API → LLM → pandas → result
 ```
 
@@ -130,7 +134,8 @@ I recommend:
 👉 Streamlit (fastest + clean)
 
 ⚡ MVP Architecture (What I'd Build)
-```
+
+```markdown
 Streamlit UI
      ↓
 FastAPI
@@ -141,26 +146,31 @@ Pandas
      ↓
 CSV files
 ```
+
 You could literally build this in one day.
 
 ## 🧠 "Wow Factor" Add-Ons (Still Easy)
 
 ### 1. Automatic Daily Insights
-```
+
+```markdown
 Cron job
    ↓
 LLM
    ↓
 "Daily report"
 ```
+
 Very impressive.
 
 ### 2. Suggested Questions
-```
+
+```markdown
 LLM analyzes schema
 ↓
 Generate questions
 ```
+
 Example:
 
 "Why are cancellations increasing?"
@@ -205,12 +215,13 @@ Plotly
 
 ## Example Folder Structure
 
-```
+```markdown
 rappi-analysis/
 │
 ├── data/
-│   ├── orders.csv
-│   ├── stores.csv
+│   ├── METRICS.csv
+│   ├── ORDERS.csv
+│   └── SUMMARY.csv
 │
 ├── app/
 │   ├── main.py (FastAPI)

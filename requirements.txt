@@ -1,0 +1,18 @@
+# Data
+pandas
+duckdb
+
+# LLMs
+openai
+langchain
+langgraph
+
+# API
+fastapi
+uvicorn
+
+# UI
+plotly
+streamlit
+
+pytest
