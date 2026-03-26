@@ -5,7 +5,6 @@ duckdb
 # LLMs
 openai
 langchain
-langgraph
 
 # API
 fastapi

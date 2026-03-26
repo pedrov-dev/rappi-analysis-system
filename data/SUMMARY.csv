@@ -1,16 +1,8 @@
-Column             , Type  , Examples                                                                      , Description (inferred)
-COUNTRY            , string, "UY, PE, MX, BR"                                                              , "Two-letter country code for the row (e.g., AR, BR, CL, CO, CR, EC, MX, PE, UY)."
-CITY               , string, "Montevideo, Lima, Cajamarca, Arequipa"                                       , City name.
-ZONE               , string, "Malvin, Centro, Nuevocentro, Prado"                                          , Operational zone or neighborhood within the city.
-ZONE_TYPE          , string, "Non Wealthy, Wealthy"                                                        , "Wealth segmentation label for the zone (e.g., “Wealthy”, “Non Wealthy”)."
-ZONE_PRIORITIZATION, string, "High Priority, Prioritized, Not Prioritized"                                 , "Categorical reason for prioritization status (e.g., High Priority, Prioritized, Not Prioritized)."
-METRIC             , string, "Gross Profit UE, % Order Loss, Perfect Order - Delay, Perfect Order - Defect", "Metric being measured on this row (e.g., Perfect Order metrics, cancellations, adoption rates, etc.)."
-L8W_VALUE          , float , "0.614042, 0.343601, 0.220589, 0.679834"                                      , Metric value of 8 weeks ago
-L7W_VALUE          , float , "0.108043, -0.230287, -0.109645, -0.166944"                                   , Metric value of 7 weeks ago
-L6W_VALUE          , float , "-0.0458108, -0.560455, -0.396261, -0.190379"                                 , Metric value of 6 weeks ago
-L5W_VALUE          , float , "-0.355867, -0.688411, -0.737739, -0.402854"                                  , Metric value of 5 weeks ago
-L4W_VALUE          , float , "-0.198199, -0.705659, -0.769288, -0.0868217"                                 , Metric value of 4 weeks ago
-L3W_VALUE          , float , "0.0477875, -0.727684, -0.757915, 0.354583"                                   , Metric value of 3 weeks ago
-L2W_VALUE          , float , "0.0175286, -0.757499, -0.823253, 0.189775"                                   , Metric value of 2 weeks ago
-L1W_VALUE          , float , "0.466686, -0.526226, -0.626574, 0.468203"                                    , Metric value of 1 week ago
-L0W_VALUE          , float , "0.290181, -0.70515, -0.845332, 0.373373"                                     , Metric value from the most recent week
+Column,Type,Examples,Description (inferred)
+COUNTRY,string,"UY, PE, MX, BR","Two-letter country code for the row (e.g., AR, BR, CL, CO, CR, EC, MX, PE, UY)."
+CITY,string,"Montevideo, Lima, Cajamarca, Arequipa",City name.
+ZONE,string,"Malvin, Centro, Nuevocentro, Prado",Operational zone or neighborhood within the city.
+ZONE_TYPE,string,"Non Wealthy, Wealthy","Wealth segmentation label for the zone (e.g., “Wealthy”, “Non Wealthy”)."
+ZONE_PRIORITIZATION,string,"High Priority, Prioritized, Not Prioritized","Categorical reason for prioritization status (e.g., High Priority, Prioritized, Not Prioritized)."
+METRIC,string,"Gross Profit UE, % Order Loss, Perfect Order - Delay, Perfect Order - Defect","Metric being measured on this row (e.g., Perfect Order metrics, cancellations, adoption rates, etc.)."
+L-N-W_VALUE,float,"0.614042, 0.343601, 0.220589, 0.679834",Metric value of N weeks ago
