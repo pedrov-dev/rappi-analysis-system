@@ -5,6 +5,8 @@ duckdb
 # LLMs
 openai
 langchain
+langchain-openai
+langchain-experimental
 
 # API
 fastapi
@@ -14,4 +16,6 @@ uvicorn
 plotly
 streamlit
 
+# Misc
 pytest
+python-dotenv
