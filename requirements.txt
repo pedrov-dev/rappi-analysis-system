@@ -1,6 +1,7 @@
 # Data
 pandas
 duckdb
+tabulate
 
 # LLMs
 openai

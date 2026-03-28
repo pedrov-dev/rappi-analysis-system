@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from pydantic import BaseModel
 
 from app.agent import QueryResult, run_query
@@ -18,6 +20,13 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # tighten this in production
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def read_root():
