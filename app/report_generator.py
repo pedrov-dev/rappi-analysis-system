@@ -22,7 +22,7 @@ import json
 import logging
 import re
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from typing import Any
 
 import pandas as pd
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -111,10 +111,38 @@ def _week_cols(df: pd.DataFrame) -> list[str]:
     return sorted(cols, key=lambda c: int(re.search(r"\d+", c).group()))  # type: ignore[union-attr]
 
 
-def _safe_pct(new_val: float, old_val: float) -> float | None:
+def _as_float(value: Any) -> float | None:
+    """Convert inexact pandas values to float safely for mypy and runtime."""
+    if value is None:
+        return None
+
+    if isinstance(value, complex):
+        return None
+
+    # Supports numpy and pandas numeric scalars, plus primitive numbers.
+    if pd.isna(value):
+        return None
+
+    try:
+        return float(value)
+    except (TypeError, ValueError, OverflowError):
+        try:
+            coerced = pd.to_numeric(value, errors="coerce")
+            if pd.isna(coerced):
+                return None
+            return float(coerced)
+        except Exception:
+            return None
+
+
+def _safe_pct(new_val: float | int | None, old_val: float | int | None) -> float | None:
     if old_val == 0 or pd.isna(old_val) or pd.isna(new_val):
         return None
-    return round((new_val - old_val) / abs(old_val) * 100, 2)
+    new_val_f = _as_float(new_val)
+    old_val_f = _as_float(old_val)
+    if new_val_f is None or old_val_f is None or old_val_f == 0:
+        return None
+    return round((new_val_f - old_val_f) / abs(old_val_f) * 100, 2)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -133,6 +161,11 @@ def _find_anomalies(df: pd.DataFrame, threshold: float = 10.0) -> list[AnomalyFi
         pct = _safe_pct(row.get(c0), row.get(c1))
         if pct is None or abs(pct) < threshold:
             continue
+        current_value = _as_float(row.get(c0))
+        previous_value = _as_float(row.get(c1))
+        if current_value is None or previous_value is None:
+            continue
+
         results.append(AnomalyFinding(
             zone=str(row.get("ZONE", "")),
             country=str(row.get("COUNTRY", "")),
@@ -140,8 +173,8 @@ def _find_anomalies(df: pd.DataFrame, threshold: float = 10.0) -> list[AnomalyFi
             metric=str(row.get("METRIC", "")),
             change_pct=pct,
             direction="improvement" if pct > 0 else "deterioration",
-            current_value=float(row[c0]),
-            previous_value=float(row[c1]),
+            current_value=current_value,
+            previous_value=previous_value,
         ))
 
     results.sort(key=lambda x: abs(x.change_pct), reverse=True)
@@ -209,16 +242,18 @@ def _find_benchmarks(df: pd.DataFrame, z_threshold: float = 1.5) -> list[Benchma
         vals = grp[c0].dropna()
         if len(vals) < 3:
             continue
-        med = float(vals.median())
-        std = float(vals.std())
-        if std == 0:
+        med = _as_float(vals.median())
+        std = _as_float(vals.std())
+        if med is None or std is None or std == 0:
             continue
 
         for _, row in grp.iterrows():
             v = row.get(c0)
             if pd.isna(v):
                 continue
-            v = float(v)
+            v = _as_float(v)
+            if v is None:
+                continue
             if abs((v - med) / std) < z_threshold:
                 continue
             gap = ((v - med) / abs(med) * 100) if med != 0 else 0.0
@@ -281,14 +316,17 @@ def _find_correlations(df: pd.DataFrame, r_threshold: float = 0.5) -> list[Corre
                 continue
             seen.add(key)
             r = corr.loc[ma, mb]
-            if pd.isna(r) or abs(r) < r_threshold:
+            if pd.isna(r):
+                continue
+            r_float = _as_float(r)
+            if r_float is None or abs(r_float) < r_threshold:
                 continue
             results.append(CorrelationFinding(
                 metric_a=str(ma),
                 metric_b=str(mb),
-                correlation=round(float(r), 3),
-                strength="strong" if abs(r) >= 0.7 else "moderate",
-                direction="positive" if r > 0 else "negative",
+                correlation=round(r_float, 3),
+                strength="strong" if abs(r_float) >= 0.7 else "moderate",
+                direction="positive" if r_float > 0 else "negative",
             ))
 
     results.sort(key=lambda x: abs(x.correlation), reverse=True)
@@ -335,7 +373,7 @@ def _find_opportunities(
         if isinstance(idx, tuple):
             country = idx[0] if len(idx) > 0 else ""
             city    = idx[1] if len(idx) > 1 else ""
-            zone    = idx[-1]
+            zone    = idx[-1] if len(idx) > 0 else ""
         else:
             country, city, zone = "", "", str(idx)
         return str(country), str(city), str(zone)
@@ -347,11 +385,14 @@ def _find_opportunities(
         low = pivot[pivot[lead_col] < median_lead * 0.8].dropna(subset=[lead_col])
         for idx in low.index[:8]:
             country, city, zone = _zone_fields(idx)
+            lead_val = _as_float(low.loc[idx, lead_col])
+            if lead_val is None:
+                continue
             results.append(OpportunityFinding(
                 zone=zone, country=country, city=city,
                 opportunity_type="Supply Gap",
                 description="Lead Penetration below 80 % of country median — new-store onboarding can expand supply.",
-                supporting_metrics={lead_col: round(float(low.loc[idx, lead_col]), 4)},
+                supporting_metrics={lead_col: round(lead_val, 4)},
             ))
 
     # ── B: Cross-vertical growth — low MLTV Adoption ─────────────────────
@@ -361,11 +402,14 @@ def _find_opportunities(
         low = pivot[pivot[mltv_col] < median_mltv * 0.75].dropna(subset=[mltv_col])
         for idx in low.index[:8]:
             country, city, zone = _zone_fields(idx)
+            mltv_val = _as_float(low.loc[idx, mltv_col])
+            if mltv_val is None:
+                continue
             results.append(OpportunityFinding(
                 zone=zone, country=country, city=city,
                 opportunity_type="Cross-Vertical Growth",
                 description="MLTV Adoption well below median — users buying single-vertical, prime for cross-sell campaigns.",
-                supporting_metrics={mltv_col: round(float(low.loc[idx, mltv_col]), 4)},
+                supporting_metrics={mltv_col: round(mltv_val, 4)},
             ))
 
     # ── C: Pro subscription growth — low Pro Adoption ────────────────────
@@ -375,11 +419,14 @@ def _find_opportunities(
         low = pivot[pivot[pro_col] < median_pro * 0.7].dropna(subset=[pro_col])
         for idx in low.index[:6]:
             country, city, zone = _zone_fields(idx)
+            pro_val = _as_float(low.loc[idx, pro_col])
+            if pro_val is None:
+                continue
             results.append(OpportunityFinding(
                 zone=zone, country=country, city=city,
                 opportunity_type="Pro Subscription Growth",
                 description="Pro Adoption >30 % below median — targeted Pro acquisition campaign opportunity.",
-                supporting_metrics={pro_col: round(float(low.loc[idx, pro_col]), 4)},
+                supporting_metrics={pro_col: round(pro_val, 4)},
             ))
 
     # ── D: Quality improvement — low Perfect Orders ───────────────────────
@@ -389,11 +436,14 @@ def _find_opportunities(
         low = pivot[pivot[perf_col] < median_perf * 0.85].dropna(subset=[perf_col])
         for idx in low.index[:6]:
             country, city, zone = _zone_fields(idx)
+            perf_val = _as_float(low.loc[idx, perf_col])
+            if perf_val is None:
+                continue
             results.append(OpportunityFinding(
                 zone=zone, country=country, city=city,
                 opportunity_type="Quality Improvement",
                 description="Perfect Orders below 85 % of median — investigation of cancellations/delays can lift NPS.",
-                supporting_metrics={perf_col: round(float(low.loc[idx, perf_col]), 4)},
+                supporting_metrics={perf_col: round(perf_val, 4)},
             ))
 
     return results[:20]
