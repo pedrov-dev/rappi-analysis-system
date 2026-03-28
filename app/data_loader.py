@@ -47,7 +47,7 @@ def get_schema_summary() -> str:
 
     for name, df in _DATAFRAMES.items():
         col_tokens = " | ".join(
-            f"{col}({dtype})" for col, dtype in zip(df.columns, df.dtypes)
+            f"{col}({dtype})" for col, dtype in zip(df.columns, df.dtypes, strict=True)
         )
         lines.append(f"[{name.upper()}] ({len(df)} rows) {col_tokens}")
 

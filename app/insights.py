@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Data models
 # ---------------------------------------------------------------------------
 
-class InsightSeverity(str, Enum):
+class InsightSeverity(StrEnum):
     INFO     = "info"
     WARNING  = "warning"
     CRITICAL = "critical"
