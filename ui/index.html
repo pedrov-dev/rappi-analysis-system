@@ -6,6 +6,10 @@
 <title>Rappi Analytics</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -83,20 +87,12 @@
     border: 1px solid var(--border);
     transition: color .3s, border-color .3s;
   }
-  .status-pill.ok { color: var(--info); border-color: rgba(52,211,153,0.25); }
+  .status-pill.ok  { color: var(--info); border-color: rgba(52,211,153,0.25); }
   .status-pill.err { color: var(--crit); border-color: rgba(248,113,113,0.25); }
-  .status-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
   /* ── Layout ── */
-  .main {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
+  .main { display: flex; flex: 1; overflow: hidden; }
 
   /* ── Sidebar ── */
   aside {
@@ -108,10 +104,7 @@
     flex-direction: column;
     overflow: hidden;
   }
-  .sidebar-section {
-    padding: 16px;
-    border-bottom: 1px solid var(--border);
-  }
+  .sidebar-section { padding: 16px; border-bottom: 1px solid var(--border); }
   .sidebar-label {
     font-family: var(--mono);
     font-size: 10px;
@@ -136,11 +129,7 @@
     transition: background .15s, border-color .15s, color .15s;
     display: block;
   }
-  .suggestion-btn:hover {
-    background: var(--panel);
-    border-color: var(--accent);
-    color: var(--accent2);
-  }
+  .suggestion-btn:hover { background: var(--panel); border-color: var(--accent); color: var(--accent2); }
   .suggestion-btn:last-child { margin-bottom: 0; }
 
   .clear-btn {
@@ -161,12 +150,7 @@
   .clear-btn:hover { color: var(--crit); border-color: rgba(248,113,113,0.35); }
 
   /* ── Chat area ── */
-  .chat-wrap {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+  .chat-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
   #messages {
     flex: 1;
@@ -198,13 +182,8 @@
     justify-content: center;
     font-size: 24px;
   }
-  .welcome h1 {
-    font-family: var(--display);
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 8px;
-  }
-  .welcome p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .welcome h1 { font-family: var(--display); font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .welcome p  { font-size: 14px; color: var(--muted); line-height: 1.6; }
 
   /* ── Message bubbles ── */
   .msg { animation: fadeUp .3s ease both; }
@@ -213,10 +192,7 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  .msg-user {
-    display: flex;
-    justify-content: flex-end;
-  }
+  .msg-user { display: flex; justify-content: flex-end; }
   .msg-user .bubble {
     background: var(--accent);
     color: #fff;
@@ -227,29 +203,16 @@
     line-height: 1.5;
   }
 
-  .msg-bot {}
-  .bot-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
+  .bot-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .bot-avatar {
     width: 28px; height: 28px;
     background: linear-gradient(135deg, var(--accent), #ff4f00);
     border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     font-size: 13px;
     flex-shrink: 0;
   }
-  .bot-name {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.5px;
-  }
+  .bot-name { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.5px; }
 
   .answer-card {
     background: var(--surface);
@@ -262,6 +225,85 @@
     margin-bottom: 10px;
     white-space: pre-wrap;
   }
+
+  /* ── Chart ── */
+  .chart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 10px;
+    animation: fadeUp .4s ease both;
+  }
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .chart-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .chart-type-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--accent2);
+    background: rgba(255,173,106,0.1);
+    border: 1px solid rgba(255,173,106,0.2);
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .chart-canvas-wrap {
+    position: relative;
+    width: 100%;
+    max-height: 280px;
+  }
+  .chart-canvas-wrap canvas {
+    width: 100% !important;
+    max-height: 280px;
+  }
+
+  /* ── Export bar ── */
+  .export-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .export-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-right: 2px;
+  }
+  .export-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .export-btn:hover {
+    color: var(--text);
+    border-color: var(--accent);
+    background: rgba(255,122,47,0.06);
+  }
+  .export-btn svg { flex-shrink: 0; }
 
   /* ── Insights ── */
   .insights-header {
@@ -286,7 +328,6 @@
     transition: transform .2s;
   }
   .insights-toggle.open { transform: rotate(180deg); }
-
   .insight-summary {
     font-size: 13px;
     color: var(--muted);
@@ -294,13 +335,7 @@
     margin-bottom: 10px;
     line-height: 1.5;
   }
-
-  .insight-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
+  .insight-cards { display: flex; flex-direction: column; gap: 8px; }
   .insight-card {
     border-radius: 8px;
     padding: 10px 14px;
@@ -309,24 +344,10 @@
     flex-direction: column;
     gap: 4px;
   }
-  .insight-card.critical {
-    background: var(--crit-bg);
-    border-color: var(--crit);
-  }
-  .insight-card.warning {
-    background: var(--warn-bg);
-    border-color: var(--warn);
-  }
-  .insight-card.info {
-    background: var(--info-bg);
-    border-color: var(--info);
-  }
-
-  .insight-top {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .insight-card.critical { background: var(--crit-bg); border-color: var(--crit); }
+  .insight-card.warning  { background: var(--warn-bg); border-color: var(--warn); }
+  .insight-card.info     { background: var(--info-bg); border-color: var(--info); }
+  .insight-top { display: flex; align-items: center; gap: 8px; }
   .severity-badge {
     font-family: var(--mono);
     font-size: 9px;
@@ -339,29 +360,10 @@
   .critical .severity-badge { color: var(--crit); background: rgba(248,113,113,0.15); }
   .warning  .severity-badge { color: var(--warn); background: rgba(251,191,36,0.15); }
   .info     .severity-badge { color: var(--info); background: rgba(52,211,153,0.15); }
-
-  .insight-title {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-  }
-  .insight-detail {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.5;
-  }
-  .insight-action {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--accent2);
-    margin-top: 2px;
-  }
-  .insight-meta {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 4px;
-  }
+  .insight-title  { font-size: 13px; font-weight: 500; color: var(--text); }
+  .insight-detail { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .insight-action { font-family: var(--mono); font-size: 11px; color: var(--accent2); margin-top: 2px; }
+  .insight-meta   { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
   .insight-tag {
     font-family: var(--mono);
     font-size: 10px;
@@ -379,10 +381,7 @@
     gap: 10px;
     padding: 8px 0;
   }
-  .typing-dots {
-    display: flex;
-    gap: 4px;
-  }
+  .typing-dots { display: flex; gap: 4px; }
   .typing-dots span {
     width: 6px; height: 6px;
     border-radius: 50%;
@@ -395,13 +394,9 @@
     0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
     40% { opacity: 1; transform: scale(1); }
   }
-  .loading-label {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-  }
+  .loading-label { font-family: var(--mono); font-size: 11px; color: var(--muted); }
 
-  /* ── Error message ── */
+  /* ── Error ── */
   .error-card {
     background: var(--crit-bg);
     border: 1px solid rgba(248,113,113,0.25);
@@ -430,7 +425,6 @@
     transition: border-color .2s;
   }
   .input-row:focus-within { border-color: var(--accent); }
-
   #question {
     flex: 1;
     background: none;
@@ -447,7 +441,6 @@
   }
   #question::placeholder { color: var(--muted); }
   #question::-webkit-scrollbar { display: none; }
-
   .send-btn {
     width: 34px; height: 34px;
     border-radius: 8px;
@@ -455,17 +448,14 @@
     background: var(--accent);
     color: #fff;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
     transition: background .15s, transform .1s;
   }
-  .send-btn:hover { background: #ff6010; }
-  .send-btn:active { transform: scale(0.94); }
+  .send-btn:hover    { background: #ff6010; }
+  .send-btn:active   { transform: scale(0.94); }
   .send-btn:disabled { background: var(--border); cursor: not-allowed; transform: none; }
   .send-btn svg { pointer-events: none; }
-
   .input-hint {
     font-family: var(--mono);
     font-size: 10px;
@@ -529,8 +519,22 @@
 <script>
 const API = 'http://localhost:8000';
 let busy = false;
+let msgCounter = 0;
 
-// ── Auto-resize textarea ─────────────────────────────────────────────────────
+// Chart.js palette for dark theme
+const CHART_COLORS = [
+  'rgba(255,122,47,0.85)',
+  'rgba(52,211,153,0.85)',
+  'rgba(99,179,237,0.85)',
+  'rgba(251,191,36,0.85)',
+  'rgba(167,139,250,0.85)',
+  'rgba(248,113,113,0.85)',
+  'rgba(255,173,106,0.85)',
+  'rgba(94,234,212,0.85)',
+];
+const CHART_BORDERS = CHART_COLORS.map(c => c.replace('0.85', '1'));
+
+// ── Auto-resize textarea ────────────────────────────────────────────────────
 const ta = document.getElementById('question');
 ta.addEventListener('input', () => {
   ta.style.height = 'auto';
@@ -546,10 +550,8 @@ async function checkHealth() {
   const txt  = document.getElementById('status-text');
   try {
     const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(3000) });
-    if (r.ok) {
-      pill.className = 'status-pill ok';
-      txt.textContent = 'api connected';
-    } else throw new Error();
+    if (r.ok) { pill.className = 'status-pill ok'; txt.textContent = 'api connected'; }
+    else throw new Error();
   } catch {
     pill.className = 'status-pill err';
     txt.textContent = 'api offline';
@@ -571,8 +573,7 @@ function clearChat() {
   const msgs = document.getElementById('messages');
   msgs.innerHTML = '';
   const w = document.createElement('div');
-  w.className = 'welcome';
-  w.id = 'welcome';
+  w.className = 'welcome'; w.id = 'welcome';
   w.innerHTML = `<div class="welcome-icon">📦</div><h1>Analytics Assistant</h1><p>Ask anything about store performance, order delays, courier data, or zone-level metrics.</p>`;
   msgs.appendChild(w);
 }
@@ -593,17 +594,14 @@ async function sendQuestion() {
   appendUser(q);
   const loadEl = appendLoading('Querying data…');
 
-  let queryAnswer = null;
-
   try {
-    // ── Layer 2: query ──────────────────────────────────────────────────────
-    const chatRes = await fetch(`${API}/chat`, {
+    // Layer 2: chat query
+    const chatRes  = await fetch(`${API}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question: q }),
     });
     const chatData = await chatRes.json();
-
     loadEl.remove();
 
     if (!chatData.success && chatData.error) {
@@ -612,25 +610,29 @@ async function sendQuestion() {
       return;
     }
 
-    queryAnswer = chatData.answer;
+    const queryAnswer = chatData.answer;
+    const parallelLoad = appendLoading('Generating insights & chart…');
 
-    // ── Layer 3: insights ───────────────────────────────────────────────────
-    const insightLoad = appendLoading('Generating insights…');
-
-    let insightData = null;
-    try {
-      const insRes = await fetch(`${API}/insights`, {
+    // Layer 3 + 4: insights & chart in parallel
+    const [insightSettled, chartSettled] = await Promise.allSettled([
+      fetch(`${API}/insights`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q, query_result: queryAnswer }),
-      });
-      insightData = await insRes.json();
-    } catch {
-      // insights are optional — don't fail the whole response
-    }
-    insightLoad.remove();
+      }).then(r => r.json()),
+      fetch(`${API}/chart`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, query_result: queryAnswer }),
+      }).then(r => r.json()),
+    ]);
 
-    appendBot(queryAnswer, insightData);
+    parallelLoad.remove();
+
+    const insightData = insightSettled.status === 'fulfilled' ? insightSettled.value : null;
+    const chartData   = chartSettled.status  === 'fulfilled'  ? chartSettled.value  : null;
+
+    appendBot(q, queryAnswer, insightData, chartData);
 
   } catch (err) {
     loadEl?.remove();
@@ -685,19 +687,55 @@ function appendError(msg) {
   scrollToBottom();
 }
 
-function appendBot(answer, insights) {
+// ── Build bot message ──────────────────────────────────────────────────────
+function appendBot(question, answer, insights, chartData) {
+  msgCounter++;
+  const id = msgCounter;
   const msgs = document.getElementById('messages');
   const el = document.createElement('div');
   el.className = 'msg msg-bot';
+  el.dataset.msgId = id;
 
+  // Chart section placeholder
+  const hasChart = chartData && chartData.has_chart && chartData.labels?.length > 0;
+  const chartHtml = hasChart ? `
+    <div class="chart-section" id="chart-section-${id}">
+      <div class="chart-header">
+        <span class="chart-title">${escHtml(chartData.title || 'Data Visualization')}</span>
+        <span class="chart-type-badge">${escHtml(chartData.chart_type)}</span>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="chart-canvas-${id}"></canvas>
+      </div>
+    </div>` : '';
+
+  // Export bar — always shown
+  const exportHtml = `
+    <div class="export-bar">
+      <span class="export-label">Export</span>
+      <button class="export-btn" onclick="exportCSV(${id})" title="Download as CSV">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M6 1v7M3 5l3 3 3-3M1 10h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        CSV
+      </button>
+      <button class="export-btn" onclick="exportPDF(${id})" title="Download as PDF">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <rect x="1.5" y="1" width="7" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M3.5 4h4M3.5 6h4M3.5 8h2.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+        </svg>
+        PDF
+      </button>
+    </div>`;
+
+  // Insights section
   let insightsHtml = '';
-  if (insights && insights.success && insights.insights && insights.insights.length > 0) {
+  if (insights?.success && insights.insights?.length > 0) {
     const cards = insights.insights.map(ins => {
-      const sev = ins.severity || 'info';
+      const sev  = ins.severity || 'info';
       const meta = [];
-      if (ins.metric)           meta.push(ins.metric);
-      if (ins.affected_entity)  meta.push(ins.affected_entity);
-
+      if (ins.metric)          meta.push(ins.metric);
+      if (ins.affected_entity) meta.push(ins.affected_entity);
       return `
         <div class="insight-card ${sev}">
           <div class="insight-top">
@@ -709,11 +747,8 @@ function appendBot(answer, insights) {
           ${meta.length ? `<div class="insight-meta">${meta.map(m => `<span class="insight-tag">${escHtml(m)}</span>`).join('')}</div>` : ''}
         </div>`;
     }).join('');
-
     const summary = insights.summary
-      ? `<div class="insight-summary">${escHtml(insights.summary)}</div>`
-      : '';
-
+      ? `<div class="insight-summary">${escHtml(insights.summary)}</div>` : '';
     insightsHtml = `
       <div>
         <div class="insights-header" onclick="toggleInsights(this)">
@@ -731,20 +766,341 @@ function appendBot(answer, insights) {
       <span class="bot-name">analyst · rappi</span>
     </div>
     <div class="answer-card">${escHtml(answer)}</div>
+    ${chartHtml}
+    ${exportHtml}
     ${insightsHtml}`;
+
+  // Stash data for export
+  el.dataset.question = question;
+  el.dataset.answer   = answer;
+  el.dataset.insights = JSON.stringify(insights || {});
+  el.dataset.chart    = JSON.stringify(chartData || {});
 
   msgs.appendChild(el);
   scrollToBottom();
+
+  // Render chart after DOM paint
+  if (hasChart) {
+    requestAnimationFrame(() => renderChart(id, chartData));
+  }
 }
 
+// ── Chart rendering ───────────────────────────────────────────────────────────
+function renderChart(id, chartData) {
+  const canvas = document.getElementById(`chart-canvas-${id}`);
+  if (!canvas) return;
+
+  const type = chartData.chart_type || 'bar';
+  const isPie = type === 'pie' || type === 'doughnut';
+
+  const datasets = (chartData.datasets || []).map((ds, i) => {
+    const color = CHART_COLORS[i % CHART_COLORS.length];
+    const border = CHART_BORDERS[i % CHART_BORDERS.length];
+    if (isPie) {
+      return {
+        label: ds.label,
+        data: ds.data,
+        backgroundColor: ds.data.map((_, j) => CHART_COLORS[j % CHART_COLORS.length]),
+        borderColor: ds.data.map((_, j) => CHART_BORDERS[j % CHART_BORDERS.length]),
+        borderWidth: 1,
+      };
+    }
+    return {
+      label: ds.label,
+      data: ds.data,
+      backgroundColor: type === 'line' ? color.replace('0.85', '0.15') : color,
+      borderColor: border,
+      borderWidth: type === 'line' ? 2 : 1,
+      pointBackgroundColor: border,
+      pointRadius: type === 'line' ? 3 : 0,
+      tension: 0.35,
+      fill: type === 'line',
+    };
+  });
+
+  new Chart(canvas, {
+    type,
+    data: { labels: chartData.labels || [], datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      animation: { duration: 600, easing: 'easeOutQuart' },
+      plugins: {
+        legend: {
+          display: datasets.length > 1 || isPie,
+          labels: {
+            color: '#8b8fa8',
+            font: { family: "'JetBrains Mono', monospace", size: 10 },
+            boxWidth: 10,
+            padding: 12,
+          },
+        },
+        tooltip: {
+          backgroundColor: '#1e2130',
+          borderColor: '#2a2e42',
+          borderWidth: 1,
+          titleColor: '#e8eaf0',
+          bodyColor: '#8b8fa8',
+          titleFont: { family: "'JetBrains Mono', monospace", size: 11 },
+          bodyFont:  { family: "'JetBrains Mono', monospace", size: 11 },
+          padding: 10,
+        },
+      },
+      scales: isPie ? {} : {
+        x: {
+          title: {
+            display: !!chartData.x_label,
+            text: chartData.x_label || '',
+            color: '#8b8fa8',
+            font: { family: "'JetBrains Mono', monospace", size: 10 },
+          },
+          ticks: {
+            color: '#8b8fa8',
+            font: { family: "'JetBrains Mono', monospace", size: 10 },
+            maxRotation: 45,
+          },
+          grid: { color: 'rgba(42,46,66,0.6)' },
+        },
+        y: {
+          title: {
+            display: !!chartData.y_label,
+            text: chartData.y_label || '',
+            color: '#8b8fa8',
+            font: { family: "'JetBrains Mono', monospace", size: 10 },
+          },
+          ticks: {
+            color: '#8b8fa8',
+            font: { family: "'JetBrains Mono', monospace", size: 10 },
+          },
+          grid: { color: 'rgba(42,46,66,0.6)' },
+        },
+      },
+    },
+  });
+}
+
+// ── CSV Export ────────────────────────────────────────────────────────────────
+function exportCSV(id) {
+  const el     = document.querySelector(`[data-msg-id="${id}"]`);
+  const chart  = JSON.parse(el.dataset.chart  || '{}');
+  const q      = el.dataset.question || '';
+  const answer = el.dataset.answer   || '';
+  const ts     = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  let csv = '';
+
+  if (chart.has_chart && chart.labels?.length > 0) {
+    // Build header: Label, dataset1, dataset2, ...
+    const headers = ['Label', ...(chart.datasets || []).map(d => d.label || 'Value')];
+    csv += headers.map(csvEsc).join(',') + '\n';
+
+    chart.labels.forEach((lbl, i) => {
+      const row = [lbl, ...(chart.datasets || []).map(d => d.data[i] ?? '')];
+      csv += row.map(csvEsc).join(',') + '\n';
+    });
+  } else {
+    // Fall back to question + answer as text CSV
+    csv += csvEsc('Question') + ',' + csvEsc('Answer') + '\n';
+    csv += csvEsc(q) + ',' + csvEsc(answer) + '\n';
+  }
+
+  // Prepend metadata rows
+  const meta = `# Rappi Analytics Export\n# Generated: ${ts}\n# Question: ${q}\n\n`;
+  downloadFile(meta + csv, `rappi-export-${id}.csv`, 'text/csv');
+}
+
+function csvEsc(v) {
+  const s = String(v ?? '');
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+// ── PDF Export ────────────────────────────────────────────────────────────────
+async function exportPDF(id) {
+  const el       = document.querySelector(`[data-msg-id="${id}"]`);
+  const q        = el.dataset.question || '';
+  const answer   = el.dataset.answer   || '';
+  const insights = JSON.parse(el.dataset.insights || '{}');
+  const chart    = JSON.parse(el.dataset.chart    || '{}');
+  const ts       = new Date().toLocaleString();
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+  const W    = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const usable = W - margin * 2;
+  let y = margin;
+
+  const checkPage = (needed = 10) => {
+    if (y + needed > pageH - margin) { doc.addPage(); y = margin; }
+  };
+
+  // ── Header ────────────────────────────────────────────
+  doc.setFillColor(22, 25, 35);
+  doc.rect(0, 0, W, 22, 'F');
+  doc.setTextColor(255, 122, 47);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('Rappi Analytics', margin, 14);
+  doc.setTextColor(139, 143, 168);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text(ts, W - margin, 14, { align: 'right' });
+  y = 30;
+
+  // ── Question ──────────────────────────────────────────
+  doc.setTextColor(232, 234, 240);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Question', margin, y);
+  y += 5;
+  doc.setFillColor(30, 33, 48);
+  const qLines = doc.splitTextToSize(q, usable - 8);
+  doc.rect(margin, y - 3, usable, qLines.length * 5 + 4, 'F');
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(255, 173, 106);
+  doc.setFontSize(9);
+  doc.text(qLines, margin + 4, y + 2);
+  y += qLines.length * 5 + 8;
+
+  // ── Answer ────────────────────────────────────────────
+  checkPage(20);
+  doc.setTextColor(232, 234, 240);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Answer', margin, y);
+  y += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(200, 202, 214);
+  const aLines = doc.splitTextToSize(answer, usable);
+  aLines.forEach(line => {
+    checkPage(6);
+    doc.text(line, margin, y);
+    y += 5;
+  });
+  y += 4;
+
+  // ── Chart (embed as image) ────────────────────────────
+  const canvas = document.getElementById(`chart-canvas-${id}`);
+  if (canvas) {
+    checkPage(70);
+    doc.setTextColor(232, 234, 240);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('Chart: ' + (chart.title || 'Data Visualization'), margin, y);
+    y += 4;
+    try {
+      const imgData = canvas.toDataURL('image/png');
+      const imgW = usable;
+      const imgH = Math.min((canvas.height / canvas.width) * imgW, 80);
+      doc.addImage(imgData, 'PNG', margin, y, imgW, imgH);
+      y += imgH + 6;
+    } catch (e) {
+      doc.setTextColor(139, 143, 168);
+      doc.setFontSize(8);
+      doc.text('[Chart could not be embedded]', margin, y);
+      y += 6;
+    }
+  }
+
+  // ── Insights ──────────────────────────────────────────
+  if (insights?.insights?.length > 0) {
+    checkPage(14);
+    doc.setTextColor(232, 234, 240);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('Insights', margin, y);
+    y += 5;
+
+    if (insights.summary) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(8.5);
+      doc.setTextColor(139, 143, 168);
+      const sLines = doc.splitTextToSize(insights.summary, usable);
+      doc.text(sLines, margin, y);
+      y += sLines.length * 4.5 + 4;
+    }
+
+    const SEV_COLORS = {
+      critical: [248, 113, 113],
+      warning:  [251, 191, 36],
+      info:     [52, 211, 153],
+    };
+
+    insights.insights.forEach(ins => {
+      const sev = ins.severity || 'info';
+      const col = SEV_COLORS[sev] || [52, 211, 153];
+
+      const lines = doc.splitTextToSize(ins.detail || '', usable - 20);
+      const cardH = 14 + lines.length * 4.5 + (ins.suggested_action ? 5 : 0);
+      checkPage(cardH + 4);
+
+      // Card background
+      doc.setFillColor(22, 25, 35);
+      doc.rect(margin, y - 1, usable, cardH, 'F');
+
+      // Severity bar
+      doc.setFillColor(...col);
+      doc.rect(margin, y - 1, 2.5, cardH, 'F');
+
+      // Badge
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...col);
+      doc.text(sev.toUpperCase(), margin + 5, y + 4);
+
+      // Title
+      doc.setFontSize(9);
+      doc.setTextColor(232, 234, 240);
+      doc.text(ins.title || '', margin + 22, y + 4);
+
+      // Detail
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(139, 143, 168);
+      doc.text(lines, margin + 5, y + 9);
+
+      let cardY = y + 9 + lines.length * 4.5;
+
+      if (ins.suggested_action) {
+        doc.setTextColor(255, 173, 106);
+        doc.setFontSize(8);
+        doc.text('→ ' + ins.suggested_action, margin + 5, cardY);
+        cardY += 4.5;
+      }
+
+      y += cardH + 3;
+    });
+  }
+
+  doc.save(`rappi-export-${id}.pdf`);
+}
+
+// ── Insights toggle ───────────────────────────────────────────────────────────
 function toggleInsights(header) {
-  const toggle = header.querySelector('.insights-toggle');
-  const cards  = header.parentElement.querySelector('.insight-cards');
+  const toggle  = header.querySelector('.insights-toggle');
+  const cards   = header.parentElement.querySelector('.insight-cards');
   const summary = header.parentElement.querySelector('.insight-summary');
-  const open = toggle.classList.toggle('open');
+  const open    = toggle.classList.toggle('open');
   toggle.textContent = open ? '▲' : '▼';
-  if (cards) cards.style.display = open ? '' : 'none';
+  if (cards)   cards.style.display   = open ? '' : 'none';
   if (summary) summary.style.display = open ? '' : 'none';
+}
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+function downloadFile(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function escHtml(s) {
