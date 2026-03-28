@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import os
 import logging
-from dataclasses import dataclass, field
+from typing import Any
 
 from dotenv import load_dotenv
 from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain_openai import ChatOpenAI
-from typing import Any
+from pydantic import BaseModel
 from langchain_core.exceptions import OutputParserException
 
 from app.data_loader import get_dataframes, get_schema_summary
@@ -28,18 +28,17 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _MODEL = os.getenv("OPENAI_MODEL", "gpt-5.4-mini")
-_MAX_ITERATIONS = int(os.getenv("AGENT_MAX_ITERATIONS", "3"))
+_MAX_ITERATIONS = int(os.getenv("AGENT_MAX_ITERATIONS", "5"))
 
 # ---------------------------------------------------------------------------
 # Result type
 # ---------------------------------------------------------------------------
 
-@dataclass
-class QueryResult:
+class QueryResult(BaseModel):
     answer: str
     raw_output: str
     success: bool
-    error: str | None = field(default=None)
+    error: str | None = None
 
 
 # ---------------------------------------------------------------------------

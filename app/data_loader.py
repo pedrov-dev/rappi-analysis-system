@@ -22,8 +22,9 @@ def _load_csv(path: Path) -> pd.DataFrame:
 
 # ── Startup: load all DataFrames once ────────────────────────────────────────
 
+# Normalize keys to uppercase so consumers can rely on stable dataset names.
 _DATAFRAMES: dict[str, pd.DataFrame] = {
-    name: _load_csv(path) for name, path in _CSV_FILES.items()
+    name.upper(): _load_csv(path) for name, path in _CSV_FILES.items()
 }
 
 # ── Public API ────────────────────────────────────────────────────────────────

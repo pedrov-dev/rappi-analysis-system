@@ -1,18 +1,30 @@
+from dataclasses import asdict
 from fastapi import FastAPI
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import logging
 
+from app.data_loader import get_dataframes
 from app.insights import generate_insights, InsightResult
 from app.agent import run_query, QueryResult
 
-app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    load_dataframes()  # runs once on startup
+    # Ensure DataFrames are loaded at startup.
+    get_dataframes()
     yield
+
+app = FastAPI(lifespan=lifespan)
+
+@app.get("/")
+async def read_root():
+    return {"message": "API is running. use /health, /chat or /insights."}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 class ChatRequest(BaseModel):
     question: str
@@ -32,10 +44,6 @@ class InsightsResponse(BaseModel):
     success: bool
     error: str | None = None
 
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"} 
-
 @app.post("/chat", response_model=QueryResult)
 async def chat(req: ChatRequest):
     result = run_query(req.question)
@@ -46,7 +54,7 @@ async def insights(req: InsightsRequest):
     result = generate_insights(req.question, req.query_result)
     return InsightsResponse(
         summary=result.summary,
-        insights=[vars(i) for i in result.insights],
+        insights=[asdict(i) for i in result.insights],
         success=result.success,
         error=result.error,
     )
