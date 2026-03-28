@@ -40,6 +40,80 @@ class QueryResult(BaseModel):
     success: bool
     error: str | None = None
 
+# ---------------------------------------------------------------------------
+# Static business context (sourced from Section 3 of the technical brief)
+# ---------------------------------------------------------------------------
+ 
+_DATA_MODELS = """
+## Data Models
+ 
+### df1 — METRICS  (Dataset 1: Métricas Input)
+Operational metrics per zone across the last 8 weeks.
+ 
+| Column              | Type   | Description                                                                 |
+|---------------------|--------|-----------------------------------------------------------------------------|
+| COUNTRY             | string | Country code: AR, BR, CL, CO, CR, EC, MX, PE, UY                           |
+| CITY                | string | City name                                                                   |
+| ZONE                | string | Operational zone or neighbourhood                                           |
+| ZONE_TYPE           | string | Wealth segmentation: "Wealthy" or "Non Wealthy"                             |
+| ZONE_PRIORITIZATION | string | Strategic priority tier: "High Priority", "Prioritized", or "Not Prioritized" |
+| METRIC              | string | Name of the metric being measured (see Metrics Dictionary below)            |
+| L"N"W_VALUE         | float  | Metric value of N weeks ago 0(current)-8(oldest)                          |                                   |
+ 
+### df2 — ORDERS  (Dataset 2: Órdenes)
+Order volume per zone across the last 8 weeks.
+ 
+| Column              | Type   | Description                                    |
+|---------------------|--------|------------------------------------------------|
+| COUNTRY             | string | Country code (same values as METRICS)          |
+| CITY                | string | City name                                      |
+| ZONE                | string | Operational zone or neighbourhood              |
+| METRIC              | string | Always "Orders"                                |
+| L"N"W_VALUE         | float  | Order count of N weeks ago 0(current)-8(oldest)|                                   |
+"""
+
+_METRICS_DICTIONARY = """
+## Metrics Dictionary
+ 
+| Metric Name                          | Definition                                                                                                                                      |
+|--------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| % PRO Users Who Breakeven            | Users whose Pro subscription value generated for the company (purchases, commissions, etc.) has covered the full cost of their membership / Total Pro users |
+| % Restaurants Sessions With Optimal Assortment | Sessions with at least 40 restaurants available / Total sessions                                                               |
+| Gross Profit UE                      | Gross profit margin / Total orders (unit-economics view of profitability per order)                                                             |
+| Lead Penetration                     | Stores enabled on Rappi / (Identified prospect stores + Enabled stores + Stores that left Rappi). Measures marketplace supply capture.          |
+| MLTV Top Verticals Adoption          | Users with orders across multiple verticals (restaurants, super, pharmacy, liquors) / Total users. Measures cross-vertical engagement.          |
+| Non-Pro PTC > OP                     | Conversion of non-Pro users from "Proceed to Checkout" to "Order Placed". Measures checkout completion rate for non-subscribers.                |
+| Perfect Orders                       | Orders with no cancellations, defects, or delays / Total orders. Primary quality metric.                                                        |
+| Pro Adoption                         | Pro subscription users / Total Rappi users. Measures subscription programme penetration.                                                        |
+| Restaurants Markdowns / GMV          | Total discounts on restaurant orders / Total Restaurant Gross Merchandise Value. Measures discount intensity.                                   |
+| Restaurants SS > ATC CVR             | Restaurant funnel conversion: "Select Store" → "Add to Cart".                                                                                  |
+| Restaurants SST > SS CVR             | Percentage of users who, after selecting the Restaurants category, proceed to select a specific store from the list shown.                      |
+| Retail SST > SS CVR                  | Percentage of users who, after selecting the Supermarkets category, proceed to select a specific store from the list shown.                     |
+| Turbo Adoption                       | Users who purchase through Turbo (Rappi's fast-delivery service) / Total Rappi users with Turbo stores available.                               |
+ 
+### Metric Interpretation Notes
+- **Lead Penetration** and **Perfect Orders** are the two most-watched health indicators.
+  A zone with high Lead Penetration but low Perfect Orders signals supply quantity without
+  quality — typically a prioritisation candidate.
+- **Gross Profit UE** declining alongside stable or growing Orders suggests margin
+  compression — look for correlated increases in Restaurants Markdowns / GMV.
+- **Non-Pro PTC > OP** below benchmark in a zone with high Pro Adoption may indicate
+  that non-Pro users face friction that Pro users bypass (e.g. delivery fee thresholds).
+- When a user asks about "zonas problemáticas" (problematic zones), interpret this as
+  zones with ≥1 metric showing week-over-week deterioration of >10%, OR zones in
+  consistent decline (3+ consecutive weeks) in Perfect Orders or Gross Profit UE.
+- When a user asks about "oportunidades" (opportunities), interpret this as zones with
+  high Orders growth but below-average Lead Penetration or MLTV Top Verticals Adoption.
+"""
+ 
+_TEMPORAL_CONVENTIONS = """
+## Temporal Conventions
+- Columns L8W_VALUE → L0W_VALUE represent the last 9 data points, from oldest (L8W)
+  to most recent (L0W = current week).
+- When computing week-over-week change, use: (L0W_VALUE - L1W_VALUE) / L1W_VALUE.
+- When identifying trends (3+ weeks), compare L2W, L1W, and L0W directional movement.
+- For 8-week trend queries, use all LxW columns in chronological order.
+"""
 
 # ---------------------------------------------------------------------------
 # System prompt
@@ -47,13 +121,19 @@ class QueryResult(BaseModel):
 
 def _build_system_prompt() -> str:
     schema = get_schema_summary()
-    return f"""You are a data analyst for a food delivery platform.
-You have access to three DataFrames named df1 (METRICS), df2 (ORDERS), and df3 (SUMMARY).
-
-Schema reference:
+    return f"""You are a data analyst for a food delivery platform (Rappi).
+You have access to three DataFrames: df1 (METRICS), df2 (ORDERS), and df3 (SUMMARY).
+ 
+{_DATA_MODELS}
+ 
+{_METRICS_DICTIONARY}
+ 
+{_TEMPORAL_CONVENTIONS}
+ 
+## Inferred Schema (from loaded data)
 {schema}
-
-Rules:
+ 
+## Operating Rules
 - Perform READ-ONLY operations. Never call df.drop(), df.insert(), df.pop(),
   or any method that mutates a DataFrame in place.
 - If the question cannot be answered with the available data, say so clearly
@@ -61,6 +141,11 @@ Rules:
 - Return a concise natural-language answer with supporting data (e.g. a table
   or key numbers) where relevant.
 - Keep your final answer focused. Avoid restating the question.
+- When filtering by metric name, match against the METRIC column using the
+  exact strings in the Metrics Dictionary above (case-insensitive .str.contains
+  is acceptable for fuzzy user inputs).
+- For temporal trend questions, always sort LxW columns chronologically
+  (L8W → L0W) before computing or displaying results.
 """
 
 
