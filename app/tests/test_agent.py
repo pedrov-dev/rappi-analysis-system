@@ -1,7 +1,8 @@
-from app.agent import run_query
 import os
 import sys
 import types
+
+from app.agent import run_query
 
 # Ensure local package path is resolvable from tests
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

@@ -2,16 +2,20 @@ import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from app.agent import QueryResult, run_query
 from app.chart_generator import generate_chart_data
 from app.data_loader import get_dataframes
 from app.insights import generate_insights
+from app.report_generator import generate_report
 
 logging.basicConfig(level=logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -25,19 +29,17 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # tighten in production
+    allow_origins=["*"],   # tighten this in production
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# ---------------------------------------------------------------------------
-# Root / health
-# ---------------------------------------------------------------------------
+# ── Root / health ─────────────────────────────────────────────────────────────
 
 @app.get("/")
 async def read_root():
-    return {"message": "API is running. Use /health, /chat, /insights, or /chart."}
+    return {"message": "API is running. Use /health, /chat, /insights, or /report."}
 
 
 @app.get("/health")
@@ -45,22 +47,25 @@ async def health_check():
     return {"status": "ok"}
 
 
-# ---------------------------------------------------------------------------
-# /chat
-# ---------------------------------------------------------------------------
+# ── Chat (Layer 2) ────────────────────────────────────────────────────────────
 
 class ChatRequest(BaseModel):
     question: str
 
 
+class ChatResponse(BaseModel):
+    answer: str
+    success: bool
+    error: str | None = None
+
+
 @app.post("/chat", response_model=QueryResult)
 async def chat(req: ChatRequest):
-    return run_query(req.question)
+    result = run_query(req.question)
+    return result
 
 
-# ---------------------------------------------------------------------------
-# /insights
-# ---------------------------------------------------------------------------
+# ── Insights (Layer 3) ────────────────────────────────────────────────────────
 
 class InsightsRequest(BaseModel):
     question: str
@@ -85,9 +90,7 @@ async def insights(req: InsightsRequest):
     )
 
 
-# ---------------------------------------------------------------------------
-# /chart
-# ---------------------------------------------------------------------------
+# ── Chart (Layer 4) ────────────────────────────────────────────────────────────
 
 class ChartRequest(BaseModel):
     question: str
@@ -128,3 +131,23 @@ async def chart(req: ChartRequest):
         success=result.success,
         error=result.error,
     )
+
+
+# ── Executive Report (Layer 5) ────────────────────────────────────────────────
+
+@app.get("/report", response_class=HTMLResponse)
+async def report():
+    """
+    Run the automated analysis pipeline across all five insight categories,
+    enrich findings with GPT-4o narrative, and return a self-contained
+    HTML executive report.
+    """
+    try:
+        html = generate_report()
+        return HTMLResponse(content=html, status_code=200)
+    except ValueError as exc:
+        logger.error("report endpoint | ValueError: %s", exc)
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        logger.exception("report endpoint | unhandled: %s", exc)
+        raise HTTPException(status_code=500, detail="Report generation failed. Check server logs.")
