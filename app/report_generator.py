@@ -22,11 +22,10 @@ import json
 import logging
 import re
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Callable, TypeVar
 
 import pandas as pd
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
 
 from app.data_loader import get_dataframes
 from app.report_renderer import _render_html
@@ -145,6 +144,24 @@ def _safe_pct(new_val: float | int | None, old_val: float | int | None) -> float
     return round((new_val_f - old_val_f) / abs(old_val_f) * 100, 2)
 
 
+T = TypeVar("T")
+
+def _dedupe_findings(
+    findings: list[T],
+    key_func: Callable[[T], tuple],
+    score_func: Callable[[T], float],
+) -> list[T]:
+    """Keep a stable single finding per key with strongest score (abs)."""
+    unique: dict[tuple, T] = {}
+    for f in findings:
+        key = key_func(f)
+        score = score_func(f)
+        existing = unique.get(key)
+        if existing is None or abs(score) > abs(score_func(existing)):
+            unique[key] = f
+    return list(unique.values())
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Analysis module 1 — Anomalies
 # ─────────────────────────────────────────────────────────────────────────────
@@ -156,7 +173,7 @@ def _find_anomalies(df: pd.DataFrame, threshold: float = 10.0) -> list[AnomalyFi
         return []
     c0, c1 = wcols[0], wcols[1]
 
-    results: list[AnomalyFinding] = []
+    raw_results: list[AnomalyFinding] = []
     for _, row in df.iterrows():
         pct = _safe_pct(row.get(c0), row.get(c1))
         if pct is None or abs(pct) < threshold:
@@ -166,7 +183,7 @@ def _find_anomalies(df: pd.DataFrame, threshold: float = 10.0) -> list[AnomalyFi
         if current_value is None or previous_value is None:
             continue
 
-        results.append(AnomalyFinding(
+        raw_results.append(AnomalyFinding(
             zone=str(row.get("ZONE", "")),
             country=str(row.get("COUNTRY", "")),
             city=str(row.get("CITY", "")),
@@ -177,6 +194,11 @@ def _find_anomalies(df: pd.DataFrame, threshold: float = 10.0) -> list[AnomalyFi
             previous_value=previous_value,
         ))
 
+    results = _dedupe_findings(
+        raw_results,
+        key_func=lambda f: (f.zone, f.country, f.city, f.metric),
+        score_func=lambda f: f.change_pct,
+    )
     results.sort(key=lambda x: abs(x.change_pct), reverse=True)
     return results[:25]
 
@@ -191,7 +213,7 @@ def _find_trends(df: pd.DataFrame, min_weeks: int = 3) -> list[TrendFinding]:
     if len(wcols) < min_weeks + 1:
         return []
 
-    results: list[TrendFinding] = []
+    raw_results: list[TrendFinding] = []
     for _, row in df.iterrows():
         vals = [row.get(c) for c in wcols]
         vals = [v for v in vals if not pd.isna(v)]
@@ -209,7 +231,7 @@ def _find_trends(df: pd.DataFrame, min_weeks: int = 3) -> list[TrendFinding]:
 
         if streak >= min_weeks:
             delta = _safe_pct(vals[0], vals[streak]) or 0.0
-            results.append(TrendFinding(
+            raw_results.append(TrendFinding(
                 zone=str(row.get("ZONE", "")),
                 country=str(row.get("COUNTRY", "")),
                 city=str(row.get("CITY", "")),
@@ -218,6 +240,11 @@ def _find_trends(df: pd.DataFrame, min_weeks: int = 3) -> list[TrendFinding]:
                 delta_pct=delta,
             ))
 
+    results = _dedupe_findings(
+        raw_results,
+        key_func=lambda f: (f.zone, f.country, f.city, f.metric),
+        score_func=lambda f: f.weeks * 1000 + abs(f.delta_pct),
+    )
     results.sort(key=lambda x: (x.weeks, abs(x.delta_pct)), reverse=True)
     return results[:20]
 
@@ -268,6 +295,11 @@ def _find_benchmarks(df: pd.DataFrame, z_threshold: float = 1.5) -> list[Benchma
                 direction="above" if v > med else "below",
             ))
 
+    results = _dedupe_findings(
+        results,
+        key_func=lambda f: (f.zone, f.country, f.zone_type, f.metric),
+        score_func=lambda f: f.gap_pct,
+    )
     results.sort(key=lambda x: abs(x.gap_pct), reverse=True)
     return results[:20]
 
@@ -446,6 +478,12 @@ def _find_opportunities(
                 supporting_metrics={perf_col: round(perf_val, 4)},
             ))
 
+    results = _dedupe_findings(
+        results,
+        key_func=lambda f: (f.zone, f.country, f.city, f.opportunity_type),
+        score_func=lambda f: -min(f.supporting_metrics.values()) if f.supporting_metrics else 0.0,
+    )
+    results.sort(key=lambda x: x.opportunity_type)  # stable deterministic ordering
     return results[:20]
 
 
@@ -494,6 +532,12 @@ def _llm_enrich(findings: ReportFindings) -> dict:
         "correlations":       [asdict(f) for f in findings.correlations[:8]],
         "opportunities":      [asdict(f) for f in findings.opportunities[:10]],
     }, indent=2)
+
+    try:
+        from langchain_openai import ChatOpenAI
+    except ImportError:
+        logger.warning("langchain_openai unavailable: using fallback narrative")
+        return _fallback_narrative(findings)
 
     llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
     response = llm.invoke([
