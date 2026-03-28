@@ -1,12 +1,13 @@
+import logging
+from contextlib import asynccontextmanager
 from dataclasses import asdict
+
 from fastapi import FastAPI
 from pydantic import BaseModel
-from contextlib import asynccontextmanager
-import logging
 
+from app.agent import QueryResult, run_query
 from app.data_loader import get_dataframes
-from app.insights import generate_insights, InsightResult
-from app.agent import run_query, QueryResult
+from app.insights import generate_insights
 
 logging.basicConfig(level=logging.INFO)
 

@@ -11,8 +11,8 @@ import logging
 from dataclasses import dataclass, field
 from enum import Enum
 
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
 
 logger = logging.getLogger(__name__)
 

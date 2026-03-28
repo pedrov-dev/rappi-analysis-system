@@ -7,15 +7,15 @@ a run_query() function for the FastAPI /chat endpoint to consume.
 
 from __future__ import annotations
 
-import os
 import logging
+import os
 from typing import Any
 
 from dotenv import load_dotenv
+from langchain_core.exceptions import OutputParserException
 from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
-from langchain_core.exceptions import OutputParserException
 
 from app.data_loader import get_dataframes, get_schema_summary
 

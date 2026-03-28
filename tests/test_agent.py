@@ -1,3 +1,4 @@
+from app.agent import run_query
 import os
 import sys
 import types
@@ -22,10 +23,6 @@ langchain_core.exceptions = types.ModuleType("langchain_core.exceptions")
 langchain_core.exceptions.OutputParserException = Exception
 sys.modules["langchain_core"] = langchain_core
 sys.modules["langchain_core.exceptions"] = langchain_core.exceptions
-
-import pytest
-
-from app.agent import run_query
 
 
 def test_run_query_empty_question():
