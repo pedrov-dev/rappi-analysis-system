@@ -347,15 +347,27 @@ def _render_html(findings, narrative: dict) -> str:  # noqa: C901
 
     # ── Recommendation rows ─────────────────────────────────────────────────
     rec_rows = ""
-    for r in narrative.get("recommendations", []):
-        prio     = r.get("priority", "medium")
+    rec_items = narrative.get("recommendations", [])
+    if not isinstance(rec_items, list):
+        rec_items = []
+
+    for r in rec_items:
+        if not isinstance(r, dict):
+            continue
+
+        prio = str(r.get("priority", "medium")).strip().lower() or "medium"
         prio_cls = {"high": "red", "medium": "orange", "low": "green"}.get(prio, "orange")
+
+        finding = _esc(r.get("finding", ""))
+        action = _esc(r.get("action", ""))
+        metric = _esc(r.get("metric", "—"))
+
         rec_rows += (
             f"<tr>"
             f"<td><span class='badge {prio_cls}'>{prio.upper()}</span></td>"
-            f"<td>{_esc(r.get('finding', ''))}</td>"
-            f"<td>{_esc(r.get('action', ''))}</td>"
-            f"<td class='mono small'>{_esc(r.get('metric', '—'))}</td>"
+            f"<td>{finding}</td>"
+            f"<td>{action}</td>"
+            f"<td class='mono small'>{metric}</td>"
             f"</tr>"
         )
 
